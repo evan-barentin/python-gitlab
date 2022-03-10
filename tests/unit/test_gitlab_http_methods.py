@@ -2,6 +2,7 @@ import pytest
 import requests
 import responses
 
+import gitlab
 from gitlab import GitlabHttpError, GitlabList, GitlabParsingError, RedirectError
 from tests.unit import helpers
 
@@ -507,3 +508,20 @@ def test_delete_request_404(gl):
     with pytest.raises(GitlabHttpError):
         gl.http_delete("/not_there")
     assert responses.assert_call_count(url, 1) is True
+
+
+@responses.activate
+def test_array_type_request(gl):
+    url = "http://localhost/api/v4/projects"
+    params = "array_var[]=1&array_var[]=2&array_var[]=3"
+    full_url = f"{url}?array_var%5B%5D=1&array_var%5B%5D=2&array_var%5B%5D=3"
+    responses.add(
+        method=responses.GET,
+        url=url,
+        json={"name": "project1"},
+        status=200,
+        match=[responses.matchers.query_string_matcher(params)],
+    )
+
+    gl.http_get("/projects", array_var=gitlab.types.ArrayAttribute([1, 2, 3]))
+    assert responses.assert_call_count(full_url, 1) is True

@@ -25,6 +25,7 @@ def test_gitlab_attribute_get():
     o.set_from_cli("whatever2")
     assert o.get() == "whatever2"
     assert o.get_for_api() == "whatever2"
+    assert o.get_as_tuple_list(key="foo") == [("foo", "whatever2")]
 
     o = types.GitlabAttribute()
     assert o._value is None
@@ -64,6 +65,24 @@ def test_array_attribute_get_for_api_from_int_list():
     assert o.get_for_api() == "1,9,7"
 
 
+def test_array_attribute_get_as_tuple_list_from_list():
+    o = types.ArrayAttribute(["foo", "bar", "baz"])
+    assert o.get_as_tuple_list(key="identifier") == [
+        ("identifier[]", "foo"),
+        ("identifier[]", "bar"),
+        ("identifier[]", "baz"),
+    ]
+
+
+def test_array_attribute_get_as_tuple_list_from_int_list():
+    o = types.ArrayAttribute([1, 9, 7])
+    assert o.get_as_tuple_list(key="identifier") == [
+        ("identifier[]", "1"),
+        ("identifier[]", "9"),
+        ("identifier[]", "7"),
+    ]
+
+
 def test_array_attribute_does_not_split_string():
     o = types.ArrayAttribute("foo")
     assert o.get_for_api() == "foo"
@@ -86,7 +105,22 @@ def test_csv_string_attribute_get_for_api_from_int_list():
     assert o.get_for_api() == "1,9,7"
 
 
+def test_csv_string_attribute_get_as_tuple_list_from_list():
+    o = types.CommaSeparatedListAttribute(["foo", "bar", "baz"])
+    assert o.get_as_tuple_list(key="identifier") == [("identifier", "foo,bar,baz")]
+
+
+def test_csv_string_attribute_get_as_tuple_list_from_int_list():
+    o = types.CommaSeparatedListAttribute([1, 9, 7])
+    assert o.get_as_tuple_list(key="identifier") == [("identifier", "1,9,7")]
+
+
 # LowercaseStringAttribute tests
 def test_lowercase_string_attribute_get_for_api():
     o = types.LowercaseStringAttribute("FOO")
     assert o.get_for_api() == "foo"
+
+
+def test_lowercase_string_attribute_get_as_tuple():
+    o = types.LowercaseStringAttribute("FOO")
+    assert o.get_as_tuple_list(key="user_name") == [("user_name", "foo")]

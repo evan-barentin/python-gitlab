@@ -54,6 +54,8 @@ def copy_dict(
 ) -> None:
     for k, v in src.items():
         if isinstance(v, dict):
+            # NOTE(jlvillal): This provides some support for the `hash` type
+            # https://docs.gitlab.com/ee/api/#hash
             # Transform dict values to new attributes. For example:
             # custom_attributes: {'foo', 'bar'} =>
             #   "custom_attributes['foo']": "bar"

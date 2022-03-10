@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Wrapper for the GitLab API."""
 
+import copy
 import os
 import time
 from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
@@ -27,6 +28,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder  # type: ignore
 import gitlab.config
 import gitlab.const
 import gitlab.exceptions
+from gitlab import types as gl_types
 from gitlab import utils
 
 REDIRECT_MSG = (
@@ -604,6 +606,28 @@ class Gitlab:
 
         return (post_data, None, "application/json")
 
+    @staticmethod
+    def _prepare_dict_for_api(*, in_dict: Dict[str, Any]) -> Dict[str, Any]:
+        result: Dict[str, Any] = {}
+        for key, value in in_dict.items():
+            if isinstance(value, gl_types.GitlabAttribute):
+                result[key] = value.get_for_api()
+            else:
+                result[key] = copy.deepcopy(in_dict[key])
+        return result
+
+    @staticmethod
+    def _param_dict_to_param_tuples(*, params: Dict[str, Any]) -> List[Tuple[str, Any]]:
+        """Convert a dict to a list of key/values. This will be used to pass
+        values to requests"""
+        result: List[Tuple[str, Any]] = []
+        for key, value in params.items():
+            if isinstance(value, gl_types.GitlabAttribute):
+                result.extend(value.get_as_tuple_list(key=key))
+            else:
+                result.append((key, value))
+        return result
+
     def http_request(
         self,
         verb: str,
@@ -663,6 +687,10 @@ class Gitlab:
         else:
             utils.copy_dict(src=kwargs, dest=params)
 
+        tuple_params = self._param_dict_to_param_tuples(params=params)
+        if isinstance(post_data, dict):
+            post_data = self._prepare_dict_for_api(in_dict=post_data)
+
         opts = self._get_session_opts()
 
         verify = opts.pop("verify")
@@ -682,7 +710,7 @@ class Gitlab:
                 url=url,
                 json=json,
                 data=data,
-                params=params,
+                params=tuple_params,
                 timeout=timeout,
                 verify=verify,
                 stream=streamed,

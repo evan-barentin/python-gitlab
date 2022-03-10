@@ -230,8 +230,7 @@ class ListMixin(_RestManagerBase):
         if self._types:
             for attr_name, type_cls in self._types.items():
                 if attr_name in data.keys():
-                    type_obj = type_cls(data[attr_name])
-                    data[attr_name] = type_obj.get_for_api()
+                    data[attr_name] = type_cls(data[attr_name])
 
         # Allow to overwrite the path, handy for custom listings
         path = data.pop("path", self.path)
@@ -307,14 +306,13 @@ class CreateMixin(_RestManagerBase):
             for attr_name, type_cls in self._types.items():
                 if attr_name in data.keys():
                     type_obj = type_cls(data[attr_name])
-
                     # if the type if FileAttribute we need to pass the data as
                     # file
                     if isinstance(type_obj, g_types.FileAttribute):
                         k = type_obj.get_file_name(attr_name)
                         files[attr_name] = (k, data.pop(attr_name))
                     else:
-                        data[attr_name] = type_obj.get_for_api()
+                        data[attr_name] = type_obj
 
         # Handle specific URL for creation
         path = kwargs.pop("path", self.path)
@@ -410,7 +408,7 @@ class UpdateMixin(_RestManagerBase):
                         k = type_obj.get_file_name(attr_name)
                         files[attr_name] = (k, new_data.pop(attr_name))
                     else:
-                        new_data[attr_name] = type_obj.get_for_api()
+                        new_data[attr_name] = type_obj
 
         http_method = self._get_update_method()
         result = http_method(path, post_data=new_data, files=files, **kwargs)
