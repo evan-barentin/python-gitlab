@@ -296,3 +296,70 @@ class RepositoryMixin(_RestObjectBase):
         result = self.manager.gitlab.http_get(path, query_data=query_data, **kwargs)
 
         return result
+
+    @cli.register_custom_action(
+        "Project",
+        ("version_",),
+        ("from_", "to", "date", "branch", "trailer", "file", "message"),
+    )
+    @exc.on_http_error(exc.GitlabGetError)
+    def repository_create_changelog(
+        self,
+        version_: str,
+        from_: Optional[str] = None,
+        to: Optional[str] = None,
+        date: Optional[str] = None,
+        branch: Optional[str] = None,
+        trailer: Optional[str] = None,
+        file: Optional[str] = None,
+        message: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Generate changelog data based on commits in a repository,
+                without committing them to a changelog file.
+
+        Args:
+            version_: The version to generate the changelog for.
+                The format must follow semantic versioning.
+            from_: The start of the range of commits (as a SHA) to
+                use for generating the changelog. This commit itself
+                isn’t included in the list.
+            to: The end of the range of commits (as a SHA) to use
+                 for the changelog. This commit is included in the list
+            date: The date and time of the release, ISO 8601 formatted.
+                 Defaults to the current time.
+            branch: The branch to commit the changelog changes to,
+                 defaults to the project’s default branch.
+            trailer: The Git trailer to use for including commits,
+                 defaults to Changelog.
+            file: The file to commit the changes to, defaults to CHANGELOG.md.
+            message: The commit message to produce when committing the changes,
+                defaults to `Add changelog for version X` where X is the value
+                of the version argument.
+            **kwargs: Extra options to send to the server (e.g. sudo)
+
+        Raises:
+            GitlabAuthenticationError: If authentication is not correct
+            GitlabGetError: If the server failed to perform the request
+
+        Returns:
+            A dictionary containing the changelog
+        """
+        post_data = {"version": version_}
+        if from_:
+            post_data["from"] = from_
+        if to:
+            post_data["to"] = to
+        if date:
+            post_data["date"] = date
+        if branch:
+            post_data["branch"] = branch
+        if trailer:
+            post_data["trailer"] = trailer
+        if file:
+            post_data["file"] = file
+        if message:
+            post_data["message"] = message
+
+        path = f"/projects/{self.encoded_id}/repository/changelog"
+        self.manager.gitlab.http_post(path, post_data=post_data, **kwargs)
